@@ -9,6 +9,9 @@ from config import *
 _surface_image = None
 _payoff_image = None
 
+_surface_image_path = r"../data/default_image.png"
+_payoff_image_path = r"../data/default_image.png"
+
 
 class OptionWindow(tk.Frame):
     def __init__(self, parent, controller):
@@ -99,12 +102,12 @@ class OptionWindow(tk.Frame):
         nt_entry.grid(row=11, column=2)
 
         # Plot the option value surface
-        _surface_image = tk.PhotoImage(master=controller, file=r"../data/default_image.png").subsample(1, 2)
+        _surface_image = tk.PhotoImage(master=controller, file=_surface_image_path).subsample(1, 2)
         surface_image_label = tk.Label(self, image=_surface_image)
         surface_image_label.grid(row=0, column=3, rowspan=5, columnspan=4)
 
         # Plot the payoff function
-        _payoff_image = tk.PhotoImage(master=controller, file=r"../data/default_image.png").subsample(1, 2)
+        _payoff_image = tk.PhotoImage(master=controller, file=_payoff_image_path).subsample(1, 2)
         payoff_image_label = tk.Label(self, image=_payoff_image)
         payoff_image_label.grid(row=5, column=3, rowspan=3, columnspan=4)
 
