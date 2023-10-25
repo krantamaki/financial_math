@@ -18,6 +18,13 @@ INTERVAL = "1d"
 
 
 """
+The price value used in computations
+Choices = Open, High, Low, Close
+"""
+PRICE = "Close"
+
+
+"""
 The name of the database which holds the computed values for assets and options
 """
 DATABASE = "financial_math.db"
@@ -26,16 +33,28 @@ DATABASE = "financial_math.db"
 """
 The height (in pixels used in the gui windows)
 """
-HEIGHT = 360
+HEIGHT = 480
 
 
 """
 The width (in pixels used in the gui windows)
 """
-WIDTH = 585
+WIDTH = 750
 
 
 """
 The font used by the tkinter app
 """
-FONT_TUP = ("Verdana", 10)
+FONT_TUP = ("Verdana", 11)
+
+
+"""
+The size of the earnings figure (in inches) as a tuple (width, height)
+"""
+EARNINGS_IMAGE_SIZE = (3.4, 1.5)
+
+
+"""
+The size of the price figure (in inches) as a tuple (width, height)
+"""
+PRICE_IMAGE_SIZE = (3.4, 1.6)
