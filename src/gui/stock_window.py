@@ -1,10 +1,13 @@
 """
 Window for asset (stock) information
 """
+import numpy as np
 import tkinter as tk
 from tkinter import scrolledtext as st
+from tkinter import messagebox as mb
 from config import *
-
+from asset import *
+from visualization import *
 
 _price_image = None
 _earnings_image = None
@@ -13,179 +16,284 @@ _price_image_path = r"../data/default_image.png"
 _earnings_image_path = r"../data/default_image.png"
 
 
+_default_description = "Could not find a description for the asset"
+
+
 class StockWindow(tk.Frame):
+
     def __init__(self, parent, controller):
         global _price_image, _earnings_image
         tk.Frame.__init__(self, parent)
 
-        # Entry field for the ticker of the stock
-        ticker_label = tk.Label(self, text="Ticker:", font=FONT_TUP)
-        ticker_label.grid(row=0, column=0)
+        self.parent = parent
+        self.controller = controller
 
-        ticker_entry = tk.Entry(self, width=6, font=FONT_TUP)
-        ticker_entry.grid(row=0, column=1, pady=4)
-        ticker_entry.insert(0, "'ticker'")
+        # Required class specific variables
+        self._stock = None
+
+        # Entry field for the ticker of the stock
+        self.ticker_label = tk.Label(self, text="Ticker:", font=FONT_TUP)
+        self.ticker_label.grid(row=0, column=0)
+
+        self.ticker_entry = tk.Entry(self, width=10, font=FONT_TUP)
+        self.ticker_entry.grid(row=0, column=1, pady=4)
+        self.ticker_entry.insert(0, "'ticker'")
 
         # Button for searching the given entry
-        search_button = tk.Button(self, text="Search", font=FONT_TUP)
-        search_button.grid(row=0, column=2)
+        self.search_button = tk.Button(self, text="Search", font=FONT_TUP, command=self.get_ticker)
+        self.search_button.grid(row=0, column=2)
 
         # Entry for the start and end date of the span shown in figure
-        cal_label = tk.Label(self, text="Date range for the figure. Format dd:mm:yyyy", font=FONT_TUP)
-        cal_label.grid(row=1, column=0, columnspan=3)
+        self.cal_label = tk.Label(self, text="Date range for the figure. Format yyyy-mm-dd", font=FONT_TUP)
+        self.cal_label.grid(row=1, column=0, columnspan=3, pady=5)
 
-        cal_start = tk.Entry(self, width=12, font=FONT_TUP)
-        cal_start.grid(row=2, column=0, pady=4, padx=4)
-        cal_start.insert(0, "'dd:mm:yyyy'")
+        self.cal_start = tk.Entry(self, width=12, font=FONT_TUP)
+        self.cal_start.grid(row=2, column=0, pady=4, padx=4)
+        self.cal_start.insert(0, "'yyyy-mm-dd'")
 
-        dash_label = tk.Label(self, text="-", width=2, font=FONT_TUP)
-        dash_label.grid(row=2, column=1)
+        self.dash_label = tk.Label(self, text=":", width=2, font=FONT_TUP)
+        self.dash_label.grid(row=2, column=1)
 
-        cal_end = tk.Entry(self, width=12, font=FONT_TUP)
-        cal_end.grid(row=2, column=2, pady=4, padx=4)
-        cal_end.insert(0, "'dd:mm:yyyy'")
+        self.cal_end = tk.Entry(self, width=12, font=FONT_TUP)
+        self.cal_end.grid(row=2, column=2, pady=4, padx=4)
+        self.cal_end.insert(0, "'yyyy-mm-dd'")
 
         # Radiobutton for choosing between normal and log normal scales
-        radio_label = tk.Label(self, text="Figure scaling:", font=FONT_TUP)
-        radio_label.grid(row=3, column=0)
+        self.radio_label = tk.Label(self, text="Figure scaling:", font=FONT_TUP)
+        self.radio_label.grid(row=3, column=0, pady=5)
 
-        scale = tk.IntVar(value=0)
+        self.scale = tk.IntVar(value=0)
 
-        log_radio_button = tk.Radiobutton(self, text="Normal", variable=scale, value=0, font=FONT_TUP)
-        log_radio_button.grid(row=3, column=1)
+        self.log_radio_button = tk.Radiobutton(self, text="Normal", variable=self.scale, value=0, font=FONT_TUP)
+        self.log_radio_button.grid(row=3, column=1, pady=5)
 
-        norm_radio_button = tk.Radiobutton(self, text="Logarithmic", variable=scale, value=1, font=FONT_TUP)
-        norm_radio_button.grid(row=3, column=2)
+        self.norm_radio_button = tk.Radiobutton(self, text="Logarithmic", variable=self.scale, value=1, font=FONT_TUP)
+        self.norm_radio_button.grid(row=3, column=2, pady=5)
 
         # Entry for the moving average
-        ma_label = tk.Label(self, text="Moving Average:", font=FONT_TUP)
-        ma_label.grid(row=4, column=0, columnspan=2)
+        self.ma_label = tk.Label(self, text="Moving Average:", font=FONT_TUP)
+        self.ma_label.grid(row=4, column=0, columnspan=2)
 
-        ma_entry = tk.Entry(self, width=5, font=FONT_TUP)
-        ma_entry.grid(row=4, column=2, pady=4, padx=4)
+        self.ma_entry = tk.Entry(self, width=5, font=FONT_TUP)
+        self.ma_entry.grid(row=4, column=2, pady=4, padx=4)
 
         # Button for updating the figure
-        update_label = tk.Label(self, text="Update the figure:", font=FONT_TUP)
-        update_label.grid(row=5, column=0, columnspan=2, pady=15)
+        self.update_label = tk.Label(self, text="Update the figure:", font=FONT_TUP)
+        self.update_label.grid(row=5, column=0, columnspan=2, pady=25)
 
-        update_button = tk.Button(self, text="Update", font=FONT_TUP)
-        update_button.grid(row=5, column=2, pady=15)
+        self.update_button = tk.Button(self, text="Update", font=FONT_TUP, command=self.update_figure)
+        self.update_button.grid(row=5, column=2, pady=25)
+
+        # Write the latest share price
+        self.price_value = tk.StringVar()
+        self.price_value.set("-")
+
+        self.price_label_text = tk.StringVar()
+        self.price_label_text.set("Latest share price ( - ):")
+
+        self.price_label = tk.Label(self, textvariable=self.price_label_text, font=FONT_TUP)
+        self.price_label.grid(row=6, column=0, columnspan=2, pady=3, padx=5)
+
+        self.price_value_label = tk.Label(self, textvariable=self.price_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
+        self.price_value_label.grid(row=6, column=2, pady=3)
 
         # Write the drift
-        drift_value = tk.StringVar()
-        drift_value.set("-")
+        self.drift_value = tk.StringVar()
+        self.drift_value.set("-")
 
-        drift_label = tk.Label(self, text=f"Drift (period={PERIOD})", font=FONT_TUP)
-        drift_label.grid(row=6, column=0, columnspan=2)
+        self.drift_label = tk.Label(self, text=f"Drift (period={PERIOD}, interval={INTERVAL})", font=FONT_TUP)
+        self.drift_label.grid(row=7, column=0, columnspan=2, pady=3, padx=5)
 
-        drift_value_label = tk.Label(self, textvariable=drift_value, relief=tk.SUNKEN, width=5, font=FONT_TUP)
-        drift_value_label.grid(row=6, column=2)
+        self.drift_value_label = tk.Label(self, textvariable=self.drift_value, relief=tk.SUNKEN, width=7, font=FONT_TUP)
+        self.drift_value_label.grid(row=7, column=2, pady=3)
 
         # Write the volatility
-        vol_value = tk.StringVar()
-        vol_value.set("-")
+        self.vol_value = tk.StringVar()
+        self.vol_value.set("-")
 
-        vol_label = tk.Label(self, text=f"Volatility (period={PERIOD})", font=FONT_TUP)
-        vol_label.grid(row=7, column=0, columnspan=2)
+        self.vol_label = tk.Label(self, text=f"Volatility (period={PERIOD}, interval={INTERVAL})", font=FONT_TUP)
+        self.vol_label.grid(row=8, column=0, columnspan=2, pady=3, padx=5)
 
-        vol_value_label = tk.Label(self, textvariable=vol_value, relief=tk.SUNKEN, width=5, font=FONT_TUP)
-        vol_value_label.grid(row=7, column=2)
+        self.vol_value_label = tk.Label(self, textvariable=self.vol_value, relief=tk.SUNKEN, width=7, font=FONT_TUP)
+        self.vol_value_label.grid(row=8, column=2, pady=3)
 
         # Description
-        description_text = tk.StringVar()
-        description_text.set("-")
-
-        description_area = st.ScrolledText(self, relief=tk.SUNKEN, width=35, height=5, font=FONT_TUP, state="disabled")
-        description_area.grid(row=8, column=0, columnspan=3, rowspan=4, pady=10)
+        self.description_area = st.ScrolledText(self, relief=tk.SUNKEN, width=35, height=6, font=FONT_TUP, state="disabled")
+        self.description_area.grid(row=9, column=0, columnspan=3, rowspan=4, pady=15)
 
         # Plot of the price
-        _price_image = tk.PhotoImage(master=controller, file=_price_image_path).subsample(1, 2)
-        price_image_label = tk.Label(self, image=_price_image)
-        price_image_label.grid(row=0, column=3, rowspan=5, columnspan=4)
+        self._price_image = tk.PhotoImage(master=controller, file=_price_image_path).subsample(1, 2)
+        self.price_image_label = tk.Label(self, image=self._price_image)
+        self.price_image_label.grid(row=0, column=3, rowspan=5, columnspan=4)
 
         # Plot the earnings
-        _earnings_image = tk.PhotoImage(master=controller, file=_earnings_image_path).subsample(1, 2)
-        earnings_image_label = tk.Label(self, image=_earnings_image)
-        earnings_image_label.grid(row=5, column=3, rowspan=3, columnspan=4)
+        self._earnings_image = tk.PhotoImage(master=controller, file=_earnings_image_path).subsample(1, 2)
+        self.earnings_image_label = tk.Label(self, image=self._earnings_image)
+        self.earnings_image_label.grid(row=5, column=3, rowspan=4, columnspan=4)
 
         # Write the beta
-        beta_value = tk.StringVar()
-        beta_value.set("-")
+        self.beta_value = tk.StringVar()
+        self.beta_value.set("-")
 
-        beta_label = tk.Label(self, text=f"Beta", font=FONT_TUP)
-        beta_label.grid(row=8, column=3)
+        self.beta_label = tk.Label(self, text=f"Beta", font=FONT_TUP)
+        self.beta_label.grid(row=9, column=3)
 
-        beta_value_label = tk.Label(self, textvariable=beta_value, relief=tk.SUNKEN, width=5, font=FONT_TUP)
-        beta_value_label.grid(row=8, column=4)
+        self.beta_value_label = tk.Label(self, textvariable=self.beta_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
+        self.beta_value_label.grid(row=9, column=4)
 
         # Write the present value computed from cash flows
-        fcf_value = tk.StringVar()
-        fcf_value.set("-")
+        self.fcf_value = tk.StringVar()
+        self.fcf_value.set("-")
 
-        fcf_label = tk.Label(self, text=f"PV(FCF)", font=FONT_TUP)
-        fcf_label.grid(row=9, column=3)
+        self.fcf_label = tk.Label(self, text=f"PV(FCF)", font=FONT_TUP)
+        self.fcf_label.grid(row=10, column=3)
 
-        fcf_value_label = tk.Label(self, textvariable=fcf_value, relief=tk.SUNKEN, width=5, font=FONT_TUP)
-        fcf_value_label.grid(row=9, column=4)
+        self.fcf_value_label = tk.Label(self, textvariable=self.fcf_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
+        self.fcf_value_label.grid(row=10, column=4)
 
         # Write the dividend
-        div_value = tk.StringVar()
-        div_value.set("-")
+        self.div_value = tk.StringVar()
+        self.div_value.set("-")
 
-        div_label = tk.Label(self, text=f"Dividend", font=FONT_TUP)
-        div_label.grid(row=10, column=3)
+        self.div_label = tk.Label(self, text=f"Dividend", font=FONT_TUP)
+        self.div_label.grid(row=11, column=3)
 
-        div_value_label = tk.Label(self, textvariable=div_value, relief=tk.SUNKEN, width=5, font=FONT_TUP)
-        div_value_label.grid(row=10, column=4)
+        self.div_value_label = tk.Label(self, textvariable=self.div_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
+        self.div_value_label.grid(row=11, column=4)
 
         # Write the dividend yield
-        div_yield_value = tk.StringVar()
-        div_yield_value.set("-")
+        self.div_yield_value = tk.StringVar()
+        self.div_yield_value.set("-")
 
-        div_yield_label = tk.Label(self, text=f"Div. Yield", font=FONT_TUP)
-        div_yield_label.grid(row=11, column=3)
+        self.div_yield_label = tk.Label(self, text=f"Div. Yield", font=FONT_TUP)
+        self.div_yield_label.grid(row=12, column=3)
 
-        div_yield_value_label = tk.Label(self, textvariable=div_yield_value, relief=tk.SUNKEN, width=5, font=FONT_TUP)
-        div_yield_value_label.grid(row=11, column=4)
+        self.div_yield_value_label = tk.Label(self, textvariable=self.div_yield_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
+        self.div_yield_value_label.grid(row=12, column=4)
 
         # Write the P/E
-        pe_value = tk.StringVar()
-        pe_value.set("-")
+        self.pe_value = tk.StringVar()
+        self.pe_value.set("-")
 
-        pe_label = tk.Label(self, text=f"P/E", font=FONT_TUP)
-        pe_label.grid(row=8, column=5)
+        self.pe_label = tk.Label(self, text=f"P/E", font=FONT_TUP)
+        self.pe_label.grid(row=9, column=5)
 
-        pe_value_label = tk.Label(self, textvariable=pe_value, relief=tk.SUNKEN, width=5, font=FONT_TUP)
-        pe_value_label.grid(row=8, column=6)
+        self.pe_value_label = tk.Label(self, textvariable=self.pe_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
+        self.pe_value_label.grid(row=9, column=6)
 
         # Write the D/E
-        de_value = tk.StringVar()
-        de_value.set("-")
+        self.de_value = tk.StringVar()
+        self.de_value.set("-")
 
-        de_label = tk.Label(self, text=f"D/E", font=FONT_TUP)
-        de_label.grid(row=9, column=5)
+        self.de_label = tk.Label(self, text=f"D/E", font=FONT_TUP)
+        self.de_label.grid(row=10, column=5)
 
-        de_value_label = tk.Label(self, textvariable=de_value, relief=tk.SUNKEN, width=5, font=FONT_TUP)
-        de_value_label.grid(row=9, column=6)
+        self.de_value_label = tk.Label(self, textvariable=self.de_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
+        self.de_value_label.grid(row=10, column=6)
 
         # Write the EPS
-        eps_value = tk.StringVar()
-        eps_value.set("-")
+        self.eps_value = tk.StringVar()
+        self.eps_value.set("-")
 
-        eps_label = tk.Label(self, text=f"EPS", font=FONT_TUP)
-        eps_label.grid(row=10, column=5)
+        self.eps_label = tk.Label(self, text=f"EPS", font=FONT_TUP)
+        self.eps_label.grid(row=11, column=5)
 
-        eps_value_label = tk.Label(self, textvariable=eps_value, relief=tk.SUNKEN, width=5, font=FONT_TUP)
-        eps_value_label.grid(row=10, column=6)
+        self.eps_value_label = tk.Label(self, textvariable=self.eps_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
+        self.eps_value_label.grid(row=11, column=6)
 
         # Write the market cap
-        mc_value = tk.StringVar()
-        mc_value.set("-")
+        self.mc_value = tk.StringVar()
+        self.mc_value.set("-")
 
-        mc_label = tk.Label(self, text=f"Market Cap", font=FONT_TUP)
-        mc_label.grid(row=11, column=5)
+        self.mc_label = tk.Label(self, text=f"Market Cap", font=FONT_TUP)
+        self.mc_label.grid(row=12, column=5)
 
-        mc_value_label = tk.Label(self, textvariable=mc_value, relief=tk.SUNKEN, width=5, font=FONT_TUP)
-        mc_value_label.grid(row=11, column=6)
+        self.mc_value_label = tk.Label(self, textvariable=self.mc_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
+        self.mc_value_label.grid(row=12, column=6)
 
+    def get_ticker(self):
+        """
+        Get the user input from the ticker entry
+        :return: Void
+        """
+        global _earnings_image_path
+        ticker = self.ticker_entry.get()
 
+        try:
+            # Try to load stock data
+            self._stock = Stock(ticker)
+            self._stock.update()
+        except Exception as e:
+            # Create a popup window with the error message
+            mb.showerror(title="Error", message=str(e))
+            self._stock = None
+        else:
+            # Update drift, volatility and share price
+            self.drift_value.set(f"{(self._stock.drift() * 100):.2f} %")
+            self.vol_value.set(f"{(self._stock.volatility() * 100):.2f} %")
+
+            self.price_label_text.set(f"Latest share price ({self._stock.last_update()}):")
+            self.price_value.set(f"{self._stock.price():.2f}")
+
+            # Update description text
+            if self._stock.description() is not None:
+                self.description_area.config(state="normal")
+                self.description_area.delete('1.0', tk.END)
+                self.description_area.insert(tk.INSERT, self._stock.description())
+                self.description_area.config(state="disabled")
+            else:
+                self.description_area.config(state="normal")
+                self.description_area.delete('1.0', tk.END)
+                self.description_area.insert(tk.INSERT, _default_description)
+                self.description_area.config(state="disabled")
+
+            # Update other values
+            self.mc_value.set(f"{self._stock.market_cap():.2e}")
+            self.eps_value.set(f"{self._stock.eps():.2f}")
+            self.de_value.set(f"{self._stock.debt_to_equity():.2f}")
+            self.pe_value.set(f"{self._stock.price_to_earnings():.2f}")
+            self.div_value.set(f"{self._stock.dividend():.2f}")
+            self.div_yield_value.set(f"{(self._stock.dividend_yield() * 100):.2f} %")
+
+            # TODO: Update beta and PV(FCF)
+
+            # Update earnings figure
+            _earnings_image_path = r"../tmp/earnings.png"
+            plot_earnings(self._stock.earnings(), self._stock.revenues(), self._stock.earnings_dates(), _earnings_image_path, self._stock.currency())
+            self._earnings_image = tk.PhotoImage(master=self.controller, file=_earnings_image_path)
+            self.earnings_image_label.configure(image=self._earnings_image)
+
+    def update_figure(self):
+        global _price_image_path
+
+        if self._stock is None:
+            mb.showerror(title="Error", message="The stock must first be specified!")
+            return
+
+        moving_average = self.ma_entry.get()
+        start = self.cal_start.get()
+        end = self.cal_end.get()
+        scale = self.scale.get()
+
+        try:
+            moving_average = int(moving_average)
+        except Exception:
+            mb.showerror(title="Error", message="Improper moving average!")
+            return
+
+        try:
+            start = np.datetime64(start, 'D')
+            end = np.datetime64(end, 'D')
+        except Exception:
+            mb.showerror(title="Error", message="Improper dates provided!")
+            return
+
+        try:
+            _price_image_path = f"../tmp/price.png"
+            plot_price(self._stock, moving_average, start, end, scale, _price_image_path)
+        except Exception as e:
+            # Create a popup window with the error message
+            mb.showerror(title="Error", message=str(e))
+        else:
+            self._price_image = tk.PhotoImage(master=self.controller, file=_price_image_path)
+            self.price_image_label.configure(image=self._price_image)
