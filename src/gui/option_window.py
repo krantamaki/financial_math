@@ -2,15 +2,14 @@
 Window for derivative (option) information
 """
 import tkinter as tk
-from tkinter import ttk
 from config import *
 
 
 _surface_image = None
 _payoff_image = None
 
-_surface_image_path = r"../data/default_image.png"
-_payoff_image_path = r"../data/default_image.png"
+_surface_image_path = r"data/default_image.png"
+_payoff_image_path = r"data/default_image.png"
 
 
 class OptionWindow(tk.Frame):
@@ -85,21 +84,25 @@ class OptionWindow(tk.Frame):
         cur_entry.grid(row=6, column=2)
 
         # Set up entries for the number of points in the finite difference mesh
-        fdm_label = tk.Label(self, text="Specify the size of the FD mesh.\nThere will be nT computation\nwith nS sized linear systems",
+        fdm_label = tk.Label(self, text="Specify the size of the FD mesh",
                              font=FONT_TUP)
-        fdm_label.grid(row=7, column=0, columnspan=3, rowspan=3, pady=10)
+        fdm_label.grid(row=7, column=0, columnspan=3, pady=5)
 
         ns_label = tk.Label(self, text="Points in S dimension (nS)", font=FONT_TUP)
-        ns_label.grid(row=10, column=0, columnspan=2, padx=4)
+        ns_label.grid(row=8, column=0, columnspan=2, padx=4)
 
         ns_entry = tk.Entry(self, width=6)
-        ns_entry.grid(row=10, column=2)
+        ns_entry.grid(row=8, column=2)
 
         nt_label = tk.Label(self, text="Points in t dimension (nT)", font=FONT_TUP)
-        nt_label.grid(row=11, column=0, columnspan=2, padx=4)
+        nt_label.grid(row=9, column=0, columnspan=2, padx=4)
 
         nt_entry = tk.Entry(self, width=6)
-        nt_entry.grid(row=11, column=2)
+        nt_entry.grid(row=9, column=2)
+
+        # Create a button for calculating the option value
+        calc_button = tk.Button(self, text="Calculate", font=FONT_TUP)
+        calc_button.grid(row=10, column=1, pady=5)
 
         # Plot the option value surface
         _surface_image = tk.PhotoImage(master=controller, file=_surface_image_path).subsample(1, 2)
@@ -161,7 +164,7 @@ class OptionWindow(tk.Frame):
         p_value_label = tk.Label(self, textvariable=p_value, relief=tk.SUNKEN, width=5, font=FONT_TUP)
         p_value_label.grid(row=9, column=6)
 
-        # Write the risk free rate
+        # Write the risk-free rate
         rf_value = tk.StringVar()
         rf_value.set("-")
 

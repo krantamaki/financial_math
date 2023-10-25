@@ -13,8 +13,8 @@ from math_tools import moving_average
 _price_image = None
 _earnings_image = None
 
-_price_image_path = r"../data/default_image.png"
-_earnings_image_path = r"../data/default_image.png"
+_price_image_path = r"data/default_image.png"
+_earnings_image_path = r"data/default_image.png"
 
 
 _default_description = "Could not find a description for the asset"
@@ -269,7 +269,7 @@ class StockWindow(tk.Frame):
             # TODO: Update beta and PV(FCF)
 
             # Update earnings figure
-            _earnings_image_path = r"../tmp/earnings.png"
+            _earnings_image_path = r"tmp/earnings.png"
             plot_earnings(self._stock.earnings(), self._stock.revenues(), self._stock.earnings_dates(), _earnings_image_path, self._stock.currency())
             self._earnings_image = tk.PhotoImage(master=self.controller, file=_earnings_image_path)
             self.earnings_image_label.configure(image=self._earnings_image)
@@ -313,7 +313,7 @@ class StockWindow(tk.Frame):
 
             self.change_value.set(f"{(((self._stock.price() - prices[0]) / prices[0]) * 100):.2f} %")
 
-            _price_image_path = f"../tmp/price.png"
+            _price_image_path = f"tmp/price.png"
             plot_price(prices, dates, ma_prices, ma_dates, lag, scale, _price_image_path, self._stock.currency(), self._stock.volatility())
         except Exception as e:
             # Create a popup window with the error message

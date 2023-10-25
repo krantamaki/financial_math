@@ -5,12 +5,10 @@ https://www.geeksforgeeks.org/tkinter-application-to-switch-between-different-pa
 """
 import tkinter as tk
 import sys
-sys.path.append("..")
-
 from config import *
-from stock_window import *
-from option_window import *
-from advanced_setting_window import *
+from gui.stock_window import *
+from gui.option_window import *
+from gui.advanced_setting_window import *
 
 
 # Global variable for the main tkinter application
@@ -72,5 +70,3 @@ def start():
 
     _app.mainloop()
 
-
-start()
