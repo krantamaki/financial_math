@@ -3,6 +3,7 @@ Collection of functions used for computing basic statistics etc.
 Most of these could be replaced with generic math libraries, but are
 implemented here for clarity
 """
+import numpy as np
 
 
 def mean(data):
@@ -62,3 +63,20 @@ def cov(data_a, data_b, mean_a=None, mean_b=None):
     ret = sum([(data_a[i] - mean_a) * (data_b[i] - mean_b) for i in range(N)]) / (N - 1)
 
     return ret
+
+
+def moving_average(data, lag):
+    """
+    Computes the moving average for the given data
+    :param data: array_like. The data for which moving average is computed
+    :param lag: float. The lag of the moving average
+    :return: np.array
+    """
+    npdata = np.array(data)
+    ret = []
+
+    for i in range(len(npdata) - lag):
+        ret.append(mean(npdata[i:i + lag]))
+
+    return np.array(ret)
+
