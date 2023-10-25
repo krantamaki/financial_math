@@ -33,7 +33,7 @@ DATABASE = "financial_math.db"
 """
 The height (in pixels used in the gui windows)
 """
-HEIGHT = 480
+HEIGHT = 515
 
 
 """
@@ -51,10 +51,10 @@ FONT_TUP = ("Verdana", 11)
 """
 The size of the earnings figure (in inches) as a tuple (width, height)
 """
-EARNINGS_IMAGE_SIZE = (3.4, 1.5)
+EARNINGS_IMAGE_SIZE = (3.35, 1.45)
 
 
 """
 The size of the price figure (in inches) as a tuple (width, height)
 """
-PRICE_IMAGE_SIZE = (3.4, 1.6)
+PRICE_IMAGE_SIZE = (3.35, 1.7)

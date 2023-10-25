@@ -8,6 +8,7 @@ from tkinter import messagebox as mb
 from config import *
 from asset import *
 from visualization import *
+from math_tools import moving_average
 
 _price_image = None
 _earnings_image = None
@@ -77,12 +78,22 @@ class StockWindow(tk.Frame):
         self.ma_entry = tk.Entry(self, width=5, font=FONT_TUP)
         self.ma_entry.grid(row=4, column=2, pady=4, padx=4)
 
+        # Label for the change in value over specified period
+        self.change_value = tk.StringVar()
+        self.change_value.set("-")
+
+        self.change_label = tk.Label(self, text="Change in value on the interval:", font=FONT_TUP)
+        self.change_label.grid(row=5, column=0, columnspan=2, pady=3, padx=5)
+
+        self.change_value_label = tk.Label(self, textvariable=self.change_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
+        self.change_value_label.grid(row=5, column=2, pady=3)
+
         # Button for updating the figure
         self.update_label = tk.Label(self, text="Update the figure:", font=FONT_TUP)
-        self.update_label.grid(row=5, column=0, columnspan=2, pady=25)
+        self.update_label.grid(row=6, column=0, columnspan=2, pady=25)
 
         self.update_button = tk.Button(self, text="Update", font=FONT_TUP, command=self.update_figure)
-        self.update_button.grid(row=5, column=2, pady=25)
+        self.update_button.grid(row=6, column=2, pady=25)
 
         # Write the latest share price
         self.price_value = tk.StringVar()
@@ -92,39 +103,39 @@ class StockWindow(tk.Frame):
         self.price_label_text.set("Latest share price ( - ):")
 
         self.price_label = tk.Label(self, textvariable=self.price_label_text, font=FONT_TUP)
-        self.price_label.grid(row=6, column=0, columnspan=2, pady=3, padx=5)
+        self.price_label.grid(row=7, column=0, columnspan=2, pady=3, padx=5)
 
         self.price_value_label = tk.Label(self, textvariable=self.price_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
-        self.price_value_label.grid(row=6, column=2, pady=3)
+        self.price_value_label.grid(row=7, column=2, pady=3)
 
         # Write the drift
         self.drift_value = tk.StringVar()
         self.drift_value.set("-")
 
         self.drift_label = tk.Label(self, text=f"Drift (period={PERIOD}, interval={INTERVAL})", font=FONT_TUP)
-        self.drift_label.grid(row=7, column=0, columnspan=2, pady=3, padx=5)
+        self.drift_label.grid(row=8, column=0, columnspan=2, pady=3, padx=5)
 
         self.drift_value_label = tk.Label(self, textvariable=self.drift_value, relief=tk.SUNKEN, width=7, font=FONT_TUP)
-        self.drift_value_label.grid(row=7, column=2, pady=3)
+        self.drift_value_label.grid(row=8, column=2, pady=3)
 
         # Write the volatility
         self.vol_value = tk.StringVar()
         self.vol_value.set("-")
 
         self.vol_label = tk.Label(self, text=f"Volatility (period={PERIOD}, interval={INTERVAL})", font=FONT_TUP)
-        self.vol_label.grid(row=8, column=0, columnspan=2, pady=3, padx=5)
+        self.vol_label.grid(row=9, column=0, columnspan=2, pady=3, padx=5)
 
         self.vol_value_label = tk.Label(self, textvariable=self.vol_value, relief=tk.SUNKEN, width=7, font=FONT_TUP)
-        self.vol_value_label.grid(row=8, column=2, pady=3)
+        self.vol_value_label.grid(row=9, column=2, pady=3)
 
         # Description
         self.description_area = st.ScrolledText(self, relief=tk.SUNKEN, width=35, height=6, font=FONT_TUP, state="disabled")
-        self.description_area.grid(row=9, column=0, columnspan=3, rowspan=4, pady=15)
+        self.description_area.grid(row=10, column=0, columnspan=3, rowspan=4, pady=15)
 
         # Plot of the price
         self._price_image = tk.PhotoImage(master=controller, file=_price_image_path).subsample(1, 2)
         self.price_image_label = tk.Label(self, image=self._price_image)
-        self.price_image_label.grid(row=0, column=3, rowspan=5, columnspan=4)
+        self.price_image_label.grid(row=0, column=3, rowspan=6, columnspan=4)
 
         # Plot the earnings
         self._earnings_image = tk.PhotoImage(master=controller, file=_earnings_image_path).subsample(1, 2)
@@ -136,80 +147,80 @@ class StockWindow(tk.Frame):
         self.beta_value.set("-")
 
         self.beta_label = tk.Label(self, text=f"Beta", font=FONT_TUP)
-        self.beta_label.grid(row=9, column=3)
+        self.beta_label.grid(row=10, column=3)
 
         self.beta_value_label = tk.Label(self, textvariable=self.beta_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
-        self.beta_value_label.grid(row=9, column=4)
+        self.beta_value_label.grid(row=10, column=4)
 
         # Write the present value computed from cash flows
         self.fcf_value = tk.StringVar()
         self.fcf_value.set("-")
 
         self.fcf_label = tk.Label(self, text=f"PV(FCF)", font=FONT_TUP)
-        self.fcf_label.grid(row=10, column=3)
+        self.fcf_label.grid(row=11, column=3)
 
         self.fcf_value_label = tk.Label(self, textvariable=self.fcf_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
-        self.fcf_value_label.grid(row=10, column=4)
+        self.fcf_value_label.grid(row=11, column=4)
 
         # Write the dividend
         self.div_value = tk.StringVar()
         self.div_value.set("-")
 
         self.div_label = tk.Label(self, text=f"Dividend", font=FONT_TUP)
-        self.div_label.grid(row=11, column=3)
+        self.div_label.grid(row=12, column=3)
 
         self.div_value_label = tk.Label(self, textvariable=self.div_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
-        self.div_value_label.grid(row=11, column=4)
+        self.div_value_label.grid(row=12, column=4)
 
         # Write the dividend yield
         self.div_yield_value = tk.StringVar()
         self.div_yield_value.set("-")
 
         self.div_yield_label = tk.Label(self, text=f"Div. Yield", font=FONT_TUP)
-        self.div_yield_label.grid(row=12, column=3)
+        self.div_yield_label.grid(row=13, column=3)
 
         self.div_yield_value_label = tk.Label(self, textvariable=self.div_yield_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
-        self.div_yield_value_label.grid(row=12, column=4)
+        self.div_yield_value_label.grid(row=13, column=4)
 
         # Write the P/E
         self.pe_value = tk.StringVar()
         self.pe_value.set("-")
 
         self.pe_label = tk.Label(self, text=f"P/E", font=FONT_TUP)
-        self.pe_label.grid(row=9, column=5)
+        self.pe_label.grid(row=10, column=5)
 
         self.pe_value_label = tk.Label(self, textvariable=self.pe_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
-        self.pe_value_label.grid(row=9, column=6)
+        self.pe_value_label.grid(row=10, column=6)
 
         # Write the D/E
         self.de_value = tk.StringVar()
         self.de_value.set("-")
 
         self.de_label = tk.Label(self, text=f"D/E", font=FONT_TUP)
-        self.de_label.grid(row=10, column=5)
+        self.de_label.grid(row=11, column=5)
 
         self.de_value_label = tk.Label(self, textvariable=self.de_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
-        self.de_value_label.grid(row=10, column=6)
+        self.de_value_label.grid(row=11, column=6)
 
         # Write the EPS
         self.eps_value = tk.StringVar()
         self.eps_value.set("-")
 
         self.eps_label = tk.Label(self, text=f"EPS", font=FONT_TUP)
-        self.eps_label.grid(row=11, column=5)
+        self.eps_label.grid(row=12, column=5)
 
         self.eps_value_label = tk.Label(self, textvariable=self.eps_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
-        self.eps_value_label.grid(row=11, column=6)
+        self.eps_value_label.grid(row=12, column=6)
 
         # Write the market cap
         self.mc_value = tk.StringVar()
         self.mc_value.set("-")
 
         self.mc_label = tk.Label(self, text=f"Market Cap", font=FONT_TUP)
-        self.mc_label.grid(row=12, column=5)
+        self.mc_label.grid(row=13, column=5)
 
         self.mc_value_label = tk.Label(self, textvariable=self.mc_value, relief=tk.SUNKEN, width=9, font=FONT_TUP)
-        self.mc_value_label.grid(row=12, column=6)
+        self.mc_value_label.grid(row=13, column=6)
 
     def get_ticker(self):
         """
@@ -270,27 +281,40 @@ class StockWindow(tk.Frame):
             mb.showerror(title="Error", message="The stock must first be specified!")
             return
 
-        moving_average = self.ma_entry.get()
+        lag = self.ma_entry.get()
         start = self.cal_start.get()
         end = self.cal_end.get()
         scale = self.scale.get()
 
         try:
-            moving_average = int(moving_average)
-        except Exception:
-            mb.showerror(title="Error", message="Improper moving average!")
-            return
-
-        try:
             start = np.datetime64(start, 'D')
             end = np.datetime64(end, 'D')
+            assert start < end
+            assert end <= np.datetime64('today')
         except Exception:
             mb.showerror(title="Error", message="Improper dates provided!")
             return
 
         try:
+            lag = int(lag)
+        except Exception:
+            mb.showerror(title="Error", message="Improper moving average!")
+            return
+
+        try:
+            assert self._stock is not None, "A stock must be specified first"
+            hist = self._stock.yfTicker.history(start=str(start), end=str(end), interval=INTERVAL)
+            data = hist[PRICE]
+            prices = data.to_numpy()
+            dates = np.array(data.index.to_numpy(), dtype='datetime64[D]')  # Note! Doesn't work if interval is not 1d
+
+            ma_prices = moving_average(prices, lag)
+            ma_dates = dates[lag:]
+
+            self.change_value.set(f"{(((self._stock.price() - prices[0]) / prices[0]) * 100):.2f} %")
+
             _price_image_path = f"../tmp/price.png"
-            plot_price(self._stock, moving_average, start, end, scale, _price_image_path)
+            plot_price(prices, dates, ma_prices, ma_dates, lag, scale, _price_image_path, self._stock.currency(), self._stock.volatility())
         except Exception as e:
             # Create a popup window with the error message
             mb.showerror(title="Error", message=str(e))
