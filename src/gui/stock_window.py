@@ -140,7 +140,7 @@ class StockWindow(tk.Frame):
         # Plot the earnings
         self._earnings_image = tk.PhotoImage(master=controller, file=_earnings_image_path).subsample(1, 2)
         self.earnings_image_label = tk.Label(self, image=self._earnings_image)
-        self.earnings_image_label.grid(row=5, column=3, rowspan=4, columnspan=4)
+        self.earnings_image_label.grid(row=6, column=3, rowspan=4, columnspan=4)
 
         # Write the beta
         self.beta_value = tk.StringVar()
@@ -311,7 +311,10 @@ class StockWindow(tk.Frame):
             ma_prices = moving_average(prices, lag)
             ma_dates = dates[lag:]
 
-            self.change_value.set(f"{(((self._stock.price() - prices[0]) / prices[0]) * 100):.2f} %")
+            if end == np.datetime64('today'):
+                self.change_value.set(f"{(((self._stock.price() - prices[0]) / prices[0]) * 100):.2f} %")
+            else:
+                self.change_value.set(f"{(((prices[-1] - prices[0]) / prices[0]) * 100):.2f} %")
 
             _price_image_path = f"tmp/price.png"
             plot_price(prices, dates, ma_prices, ma_dates, lag, scale, _price_image_path, self._stock.currency(), self._stock.volatility())
