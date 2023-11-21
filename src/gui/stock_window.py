@@ -240,17 +240,17 @@ class StockWindow(tk.Frame):
             self._stock = None
         else:
             # Update drift, volatility and share price
-            self.drift_value.set(f"{(self._stock.drift() * 100):.2f} %")
-            self.vol_value.set(f"{(self._stock.volatility() * 100):.2f} %")
+            self.drift_value.set(f"{(self._stock.drift * 100):.2f} %")
+            self.vol_value.set(f"{(self._stock.volatility * 100):.2f} %")
 
-            self.price_label_text.set(f"Latest share price ({self._stock.last_update()}):")
-            self.price_value.set(f"{self._stock.price():.2f}")
+            self.price_label_text.set(f"Latest share price ({self._stock.last_update}):")
+            self.price_value.set(f"{self._stock.price:.2f}")
 
             # Update description text
-            if self._stock.description() is not None:
+            if self._stock.description is not None:
                 self.description_area.config(state="normal")
                 self.description_area.delete('1.0', tk.END)
-                self.description_area.insert(tk.INSERT, self._stock.description())
+                self.description_area.insert(tk.INSERT, self._stock.description)
                 self.description_area.config(state="disabled")
             else:
                 self.description_area.config(state="normal")
@@ -259,18 +259,18 @@ class StockWindow(tk.Frame):
                 self.description_area.config(state="disabled")
 
             # Update other values
-            self.mc_value.set(f"{self._stock.market_cap():.2e}")
-            self.eps_value.set(f"{self._stock.eps():.2f}")
-            self.de_value.set(f"{self._stock.debt_to_equity():.2f}")
-            self.pe_value.set(f"{self._stock.price_to_earnings():.2f}")
-            self.div_value.set(f"{self._stock.dividend():.2f}")
-            self.div_yield_value.set(f"{(self._stock.dividend_yield() * 100):.2f} %")
+            self.mc_value.set(f"{self._stock.market_cap:.2e}")
+            self.eps_value.set(f"{self._stock.eps:.2f}")
+            self.de_value.set(f"{self._stock.debt_to_equity:.2f}")
+            self.pe_value.set(f"{self._stock.price_to_earnings:.2f}")
+            self.div_value.set(f"{self._stock.dividend:.2f}")
+            self.div_yield_value.set(f"{(self._stock.dividend_yield * 100):.2f} %")
 
             # TODO: Update beta and PV(FCF)
 
             # Update earnings figure
             _earnings_image_path = r"tmp/earnings.png"
-            plot_earnings(self._stock.earnings(), self._stock.revenues(), self._stock.earnings_dates(), _earnings_image_path, self._stock.currency())
+            plot_earnings(self._stock.earnings, self._stock.revenues, self._stock.earnings_dates, _earnings_image_path, self._stock.currency)
             self._earnings_image = tk.PhotoImage(master=self.controller, file=_earnings_image_path)
             self.earnings_image_label.configure(image=self._earnings_image)
 
@@ -312,12 +312,12 @@ class StockWindow(tk.Frame):
             ma_dates = dates[lag:]
 
             if end == np.datetime64('today'):
-                self.change_value.set(f"{(((self._stock.price() - prices[0]) / prices[0]) * 100):.2f} %")
+                self.change_value.set(f"{(((self._stock.price - prices[0]) / prices[0]) * 100):.2f} %")
             else:
                 self.change_value.set(f"{(((prices[-1] - prices[0]) / prices[0]) * 100):.2f} %")
 
             _price_image_path = f"tmp/price.png"
-            plot_price(prices, dates, ma_prices, ma_dates, lag, scale, _price_image_path, self._stock.currency(), self._stock.volatility())
+            plot_price(prices, dates, ma_prices, ma_dates, lag, scale, _price_image_path, self._stock.currency, self._stock.volatility)
         except Exception as e:
             # Create a popup window with the error message
             mb.showerror(title="Error", message=str(e))

@@ -11,7 +11,8 @@ from math_tools import *
 
 class Asset(ABC):
 
-    def __load__(self, ticker: str):
+    @staticmethod
+    def __load__(ticker: str):
         """
         Method for loading the financial information of an asset from database
         :param ticker: The ticker symbol as a str object
@@ -38,37 +39,38 @@ class Stock(Asset):
         :param ticker: The ticker symbol of the stock as a str object
         """
 
-        self._ticker = ticker
+        self.__ticker = ticker
         self.yfTicker = None
 
         info_dict = self.__load__(ticker)
 
-        self._description = info_dict["description"]
-        self._price = info_dict["price"]
-        self._volatility = info_dict["volatility"]  # Standard deviation of the returns
-        self._drift = info_dict["drift"]  # Mean of the returns
-        self._market_cap = info_dict["market_cap"]
-        self._earnings = info_dict["earnings"]
-        self._revenues = info_dict["revenues"]
-        self._earnings_dates = info_dict["earnings_dates"]
-        self._currency = info_dict["currency"]
-        self._eps = info_dict["eps"]
-        self._pe = info_dict["P/E"]
-        self._de = info_dict["D/E"]
-        self._dividend = info_dict["dividend"]
-        self._dividend_yield = info_dict["dividend_yield"]
-        self._last_update = info_dict["last_update"]
+        self.__description = info_dict["description"]
+        self.__price = info_dict["price"]
+        self.__volatility = info_dict["volatility"]  # Standard deviation of the returns
+        self.__drift = info_dict["drift"]  # Mean of the returns
+        self.__market_cap = info_dict["market_cap"]
+        self.__earnings = info_dict["earnings"]
+        self.__revenues = info_dict["revenues"]
+        self.__earnings_dates = info_dict["earnings_dates"]
+        self.__currency = info_dict["currency"]
+        self.__eps = info_dict["eps"]
+        self.__pe = info_dict["P/E"]
+        self.__de = info_dict["D/E"]
+        self.__dividend = info_dict["dividend"]
+        self.__dividend_yield = info_dict["dividend_yield"]
+        self.__last_update = info_dict["last_update"]
 
     def __str__(self):
-        return self._description
+        return self.__description
 
     def __repr__(self):
-        return self._ticker
+        return self.__ticker
 
     def __hash__(self):
-        return hash(self._ticker)
+        return hash(self.__ticker)
 
-    def __load__(self, ticker):
+    @staticmethod
+    def __load__(ticker: str):
         return {"description": None,
                 "price": None,
                 "drift": None,
@@ -86,91 +88,106 @@ class Stock(Asset):
                 "last_update": None}
 
     def update(self):
-        self.yfTicker = yf.Ticker(self._ticker)
+        self.yfTicker = yf.Ticker(self.__ticker)
         hist = self.yfTicker.history(period=PERIOD, interval=INTERVAL)
 
         if len(hist) == 0:
             raise RuntimeError("Invalid ticker symbol given!")
 
-        self._last_update = np.datetime64("today")
+        self.__last_update = np.datetime64("today")
 
         data = hist[PRICE].to_numpy()
         returns = (data[1:] - data[:-1]) / data[:-1]
 
-        self._drift = mean(returns)
-        self._volatility = sd(returns, m=self._drift)
+        self.__drift = mean(returns)
+        self.__volatility = sd(returns, m=self.__drift)
 
         fast_info = self.yfTicker.fast_info
-        self._price = fast_info["lastPrice"]
-        self._market_cap = fast_info["marketCap"]
-        self._currency = fast_info["currency"]
+        self.__price = fast_info["lastPrice"]
+        self.__market_cap = fast_info["marketCap"]
+        self.__currency = fast_info["currency"]
 
         financials = self.yfTicker.financials
-        self._earnings = financials.loc["Net Income From Continuing And Discontinued Operation"].to_numpy()
-        self._revenues = financials.loc["Total Revenue"].to_numpy()
-        self._earnings_dates = np.array(financials.columns.to_numpy(), dtype='datetime64[Y]')
-        self._eps = financials.iloc[:, 0]["Basic EPS"]
-        self._pe = self._price / self._eps
+        self.__earnings = financials.loc["Net Income From Continuing And Discontinued Operation"].to_numpy()
+        self.__revenues = financials.loc["Total Revenue"].to_numpy()
+        self.__earnings_dates = np.array(financials.columns.to_numpy(), dtype='datetime64[Y]')
+        self.__eps = financials.iloc[:, 0]["Basic EPS"]
+        self.__pe = self.__price / self.__eps
 
         latest_balance_sheet = self.yfTicker.balance_sheet.iloc[:, 0]
 
         debt = latest_balance_sheet["Total Debt"]
         equity = latest_balance_sheet["Stockholders Equity"]
-        self._de = debt / equity
+        self.__de = debt / equity
 
         # Note! Doesn't work correctly if company pays multiple rounds of dividend per year
         dividends = self.yfTicker.dividends
         if len(dividends) > 0:
-            self._dividend = dividends[0]
-            self._dividend_yield = self._dividend / self._price
+            self.__dividend = dividends[0]
+            self.__dividend_yield = self.__dividend / self.__price
         else:
-            self._dividend = 0
-            self._dividend_yield = 0
+            self.__dividend = 0
+            self.__dividend_yield = 0
 
-        self._description = self.yfTicker.info["longBusinessSummary"]
+        self.__description = self.yfTicker.info["longBusinessSummary"]
 
+    @property
     def volatility(self):
-        return self._volatility
+        return self.__volatility
 
+    @property
     def drift(self):
-        return self._drift
+        return self.__drift
 
+    @property
     def price(self):
-        return self._price
+        return self.__price
 
+    @property
     def description(self):
-        return self._description
+        return self.__description
 
+    @property
     def market_cap(self):
-        return self._market_cap
+        return self.__market_cap
 
+    @property
     def earnings(self):
-        return self._earnings
+        return self.__earnings
 
+    @property
     def revenues(self):
-        return self._revenues
+        return self.__revenues
 
+    @property
     def earnings_dates(self):
-        return self._earnings_dates
+        return self.__earnings_dates
 
+    @property
     def currency(self):
-        return self._currency
+        return self.__currency
 
+    @property
     def eps(self):
-        return self._eps
+        return self.__eps
 
+    @property
     def price_to_earnings(self):
-        return self._pe
+        return self.__pe
 
+    @property
     def debt_to_equity(self):
-        return self._de
+        return self.__de
 
+    @property
     def dividend(self):
-        return self._dividend
+        return self.__dividend
 
+    @property
     def dividend_yield(self):
-        return self._dividend_yield
+        return self.__dividend_yield
 
+    @property
     def last_update(self):
-        return self._last_update
+        return self.__last_update
 
