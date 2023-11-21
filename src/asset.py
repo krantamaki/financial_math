@@ -127,7 +127,7 @@ class Stock(Asset):
             self._dividend = 0
             self._dividend_yield = 0
 
-        # self._description = tick.info  # self.yfTicker.info currently not working
+        self._description = self.yfTicker.info["longBusinessSummary"]
 
     def volatility(self):
         return self._volatility
